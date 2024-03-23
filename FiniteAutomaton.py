@@ -235,15 +235,14 @@ class FiniteAutomaton:
         return state[0] + str(int(state[1:]) + count)
 
     def shift_states(self, count: int) -> 'FiniteAutomaton':
-        ret: FiniteAutomaton = FiniteAutomaton.new()
-        ret.states = [FiniteAutomaton.shift_state(state, count) for state in self.states]
-        ret.alphabet = copy.deepcopy(self.alphabet)
-        ret.initial_state = FiniteAutomaton.shift_state(self.initial_state, count)
-        ret.final_states = [FiniteAutomaton.shift_state(final_state, count) for final_state in self.final_states]
-        ret.transitions = [(FiniteAutomaton.shift_state(transition[0], count), transition[1],
-                            FiniteAutomaton.shift_state(transition[2], count))
-                           for transition in self.transitions]
-        return ret
+        self.states[:] = [FiniteAutomaton.shift_state(state, count) for state in self.states]
+        self.initial_state = FiniteAutomaton.shift_state(self.initial_state, count)
+        self.final_states[:] = [FiniteAutomaton.shift_state(final_state, count)
+                                for final_state in self.final_states]
+        self.transitions[:] = [(FiniteAutomaton.shift_state(transition[0], count), transition[1],
+                                FiniteAutomaton.shift_state(transition[2], count))
+                               for transition in self.transitions]
+        return self
 
     def defragmentation(self) -> 'FiniteAutomaton':
         try:
