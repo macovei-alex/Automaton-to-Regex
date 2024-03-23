@@ -258,18 +258,18 @@ class FiniteAutomaton:
         self.states[:] = [states_dict[state] for state in self]
         self.final_states[:] = [states_dict[state] for state in self.final_states]
         self.initial_state = states_dict[self.initial_state]
-        self.transitions = [(states_dict[transition[0]], transition[1], states_dict[transition[2]])
-                            for transition in self.transitions]
+        self.transitions[:] = [(states_dict[transition[0]], transition[1], states_dict[transition[2]])
+                               for transition in self.transitions]
         return self.sorted()
 
     def to_deterministic(self) -> 'FiniteAutomaton':
         if self.is_deterministic():
-            return copy.deepcopy(self)
+            return self
 
-        m: FiniteAutomaton = self.defragmentation()
+        self.defragmentation()
 
         states_dict: dict[tuple, str] = {}
-        next_dict: dict[tuple, str] = {tuple(m.lambda_closure(m.initial_state)): 'q0'}
+        next_dict: dict[tuple, str] = {tuple(self.lambda_closure(self.initial_state)): 'q0'}
         new_transitions: list[tuple[str, str, str]] = []
 
         while next_dict:
@@ -277,15 +277,15 @@ class FiniteAutomaton:
             next_dict: dict[tuple, str] = {}
 
             for components, new_name in states_dict.items():
-                for symbol in m.alphabet:
+                for symbol in self.alphabet:
                     new_state: set[str] = {transition[2] for old_state in components
-                                           for transition in m.transitions
+                                           for transition in self.transitions
                                            if transition[0] == old_state and transition[1] == symbol}
 
                     if len(new_state) == 0:
                         continue
 
-                    new_state_tuple: tuple = tuple(m.lambda_closure_all(new_state))
+                    new_state_tuple: tuple = tuple(self.lambda_closure_all(new_state))
 
                     if new_state_tuple not in states_dict and new_state_tuple not in next_dict:
                         new_state_result: str = f'q{len(states_dict) + len(next_dict)}'
@@ -301,10 +301,12 @@ class FiniteAutomaton:
 
         new_final_states: list[str] = [
             new_name for components, new_name in states_dict.items()
-            if any(component in m.final_states for component in components)]
+            if any(component in self.final_states for component in components)]
 
-        return FiniteAutomaton([value for key, value in states_dict.items()], m.alphabet, 'q0',
-                               new_final_states, new_transitions)
+        self.states[:] = [value for key, value in states_dict.items()]
+        self.final_states = new_final_states
+        self.transitions = new_transitions
+        return self
 
     def alternate(self, other: 'FiniteAutomaton') -> 'FiniteAutomaton':
         ret: FiniteAutomaton = FiniteAutomaton.new()
