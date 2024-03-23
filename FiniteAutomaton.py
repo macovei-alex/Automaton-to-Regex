@@ -357,10 +357,7 @@ class FiniteAutomaton:
         return ret
 
     def remove_unreachable_states(self) -> 'FiniteAutomaton':
-        automaton: FiniteAutomaton = FiniteAutomaton.new()
-        automaton.initial_state = self.initial_state
-
-        reachable_states: set[str] = {automaton.initial_state}
+        reachable_states: set[str] = {self.initial_state}
 
         change: bool = True
         while change:
@@ -370,17 +367,16 @@ class FiniteAutomaton:
                     reachable_states.add(transition[2])
                     change = True
 
-        unreachable_states: set[str] = set(automaton.states) - reachable_states
+        unreachable_states: set[str] = set(self.states) - reachable_states
         if not unreachable_states:
             return copy.deepcopy(self)
 
-        automaton.states = list(reachable_states)
-        automaton.final_states = list(set(self.final_states) - unreachable_states)
-        automaton.transitions = [transition for transition in self.transitions if transition[0] in reachable_states]
-        automaton.alphabet = [symbol for symbol in self.alphabet
-                              if any(transition[1] == symbol for transition in automaton.transitions)]
-
-        return automaton.sorted()
+        self.states = list(reachable_states)
+        self.final_states = list(set(self.final_states) - unreachable_states)
+        self.transitions = [transition for transition in self.transitions if transition[0] in reachable_states]
+        self.alphabet = [symbol for symbol in self.alphabet
+                              if any(transition[1] == symbol for transition in self.transitions)]
+        return self.sorted()
 
     def remove_useless_states(self) -> 'FiniteAutomaton':
         automaton: FiniteAutomaton = self.remove_unreachable_states()
