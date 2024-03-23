@@ -255,14 +255,12 @@ class FiniteAutomaton:
 
         states_dict: dict[str, str] = {self[i]: f'q{i}' for i in range(len(self))}
 
-        automaton: FiniteAutomaton = FiniteAutomaton.new()
-        automaton.states = [states_dict[state] for state in self]
-        automaton.final_states = [states_dict[state] for state in self.final_states]
-        automaton.initial_state = states_dict[self.initial_state]
-        automaton.alphabet = copy.deepcopy(self.alphabet)
-        automaton.transitions = [(states_dict[transition[0]], transition[1], states_dict[transition[2]])
-                                 for transition in self.transitions]
-        return automaton.sorted()
+        self.states[:] = [states_dict[state] for state in self]
+        self.final_states[:] = [states_dict[state] for state in self.final_states]
+        self.initial_state = states_dict[self.initial_state]
+        self.transitions = [(states_dict[transition[0]], transition[1], states_dict[transition[2]])
+                            for transition in self.transitions]
+        return self.sorted()
 
     def to_deterministic(self) -> 'FiniteAutomaton':
         if self.is_deterministic():
