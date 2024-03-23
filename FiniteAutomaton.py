@@ -551,22 +551,20 @@ class FiniteAutomaton:
         return self.sorted()
 
     def merge_parallel_transitions(self) -> 'FiniteAutomaton':
-        automaton: FiniteAutomaton = copy.deepcopy(self)
+        parallels: dict[tuple[str, str], list[str]] = {(t[0], t[2]): [] for t in self.transitions}
 
-        parallels: dict[tuple[str, str], list[str]] = {(t[0], t[2]): [] for t in automaton.transitions}
-
-        for transition in automaton.transitions:
+        for transition in self.transitions:
             parallels[(transition[0], transition[2])].append(transition[1])
 
         for states_pair, symbols_list in parallels.items():
             if len(symbols_list) > 1:
                 parallels[states_pair] = [symbol if symbol != '' else LAMBDA for symbol in symbols_list]
 
-        automaton.transitions = [
+        self.transitions[:] = [
             (state1, f"({'|'.join(symbols)})" if len(symbols) > 1 else symbols[0], state2)
             for (state1, state2), symbols in parallels.items() if len(symbols) > 0]
 
-        return automaton.sorted()
+        return self.sorted()
 
     def to_regex(self) -> str:
         automaton: FiniteAutomaton = self.minimize().normalize()
