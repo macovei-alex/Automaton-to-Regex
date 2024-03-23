@@ -82,6 +82,14 @@ class FiniteAutomaton:
     def new() -> 'FiniteAutomaton':
         return FiniteAutomaton([], [], '', [], [])
 
+    def renew(self) -> 'FiniteAutomaton':
+        self.states.clear()
+        self.alphabet.clear()
+        self.initial_state = ''
+        self.final_states.clear()
+        self.transitions.clear()
+        return self
+
     @staticmethod
     def new_primitive(symbol: str) -> 'FiniteAutomaton':
         if symbol == LAMBDA:
@@ -369,13 +377,14 @@ class FiniteAutomaton:
 
         unreachable_states: set[str] = set(self.states) - reachable_states
         if not unreachable_states:
-            return copy.deepcopy(self)
+            return self
 
-        self.states = list(reachable_states)
-        self.final_states = list(set(self.final_states) - unreachable_states)
-        self.transitions = [transition for transition in self.transitions if transition[0] in reachable_states]
-        self.alphabet = [symbol for symbol in self.alphabet
-                         if any(transition[1] == symbol for transition in self.transitions)]
+        self.states[:] = list(reachable_states)
+        self.final_states[:] = list(set(self.final_states) - unreachable_states)
+        self.transitions[:] = [transition for transition in self.transitions
+                               if transition[0] in reachable_states]
+        self.alphabet[:] = [symbol for symbol in self.alphabet
+                            if any(transition[1] == symbol for transition in self.transitions)]
         return self.sorted()
 
     def remove_useless_states(self) -> 'FiniteAutomaton':
@@ -391,12 +400,13 @@ class FiniteAutomaton:
                     productive_states.add(transition[0])
 
         if self.initial_state not in productive_states:
-            return FiniteAutomaton.new()
+            self.renew()
+            return self
 
-        self.states = list(productive_states)
-        self.final_states = list(set(self.final_states) & productive_states)
-        self.transitions = [transition for transition in self.transitions if transition[0] in
-                            productive_states and transition[2] in productive_states]
+        self.states[:] = list(productive_states)
+        self.final_states[:] = list(set(self.final_states) & productive_states)
+        self.transitions[:] = [transition for transition in self.transitions if transition[0] in
+                               productive_states and transition[2] in productive_states]
 
         return self.sorted()
 
@@ -404,72 +414,67 @@ class FiniteAutomaton:
         if not any(not any(transition[0] == state and transition[1] == symbol for transition in self.transitions)
                    for symbol in self.alphabet
                    for state in self.states):
-            return copy.deepcopy(self)
+            return self
 
-        automaton: FiniteAutomaton = copy.deepcopy(self)
+        sink: str = f'q{len(self)}'
+        self.states.append(sink)
+        self.transitions += [(state, symbol, sink) for state in self for symbol in self.alphabet
+                             if not any(transition[0] == state and transition[1] == symbol
+                                        for transition in self.transitions)]
 
-        sink: str = f'q{len(automaton)}'
-        automaton.states.append(sink)
-        automaton.transitions += [(state, symbol, sink) for state in automaton for symbol in automaton.alphabet
-                                  if not any(transition[0] == state and transition[1] == symbol
-                                             for transition in automaton.transitions)]
-
-        return automaton.sorted()
+        return self.sorted()
 
     def minimize(self) -> 'FiniteAutomaton':
         if not self.is_deterministic():
-            automaton: FiniteAutomaton = self.to_deterministic().defragmentation()
+            self.to_deterministic().defragmentation()
         else:
-            automaton: FiniteAutomaton = self.defragmentation()
+            self.defragmentation()
 
-        automaton = automaton.insert_sink_if_needed()
+        self.insert_sink_if_needed()
 
         # triangular under-diagonal matrix with False values
-        matrix: list[list[int]] = [[0] * (i + 1) for i in range(len(automaton) - 1)]
+        matrix: list[list[int]] = [[0] * (i + 1) for i in range(len(self) - 1)]
 
-        for i in range(len(automaton)):
-            for j in range(i + 1, len(automaton)):
-                state1: str = automaton[i]
-                state2: str = automaton[j]
+        for i in range(len(self)):
+            for j in range(i + 1, len(self)):
+                state1: str = self[i]
+                state2: str = self[j]
 
                 # mark all the different-classed state pairs (one final state and one not final state)
-                if (state1 in automaton.final_states) ^ (state2 in automaton.final_states):
+                if (state1 in self.final_states) ^ (state2 in self.final_states):
                     matrix[j - 1][i] = 1
 
         # initiate the dictionary with empty lists for each ordered pair of states.
         # we map each ordered pair of states with all their possible outcomes (pairs) when following the same symbol
         # in a transition
         pairs: dict[tuple[str, str], list[tuple[int, int]]] = {
-            (automaton[i], automaton[j]): []
-            for i in range(len(automaton))
-            for j in range(i + 1, len(automaton))}
+            (self[i], self[j]): []
+            for i in range(len(self))
+            for j in range(i + 1, len(self))}
 
-        for i in range(len(automaton.transitions)):
-            for j in range(len(automaton.transitions)):
-                t1 = automaton.transitions[i]
-                t2 = automaton.transitions[j]
-
-                if automaton.transitions[i][0] == automaton.transitions[j][0]:  # same starting state
+        for i in range(len(self.transitions)):
+            for j in range(len(self.transitions)):
+                if self.transitions[i][0] == self.transitions[j][0]:  # same starting state
                     continue
-                if automaton.transitions[i][1] != automaton.transitions[j][1]:  # different symbol
+                if self.transitions[i][1] != self.transitions[j][1]:  # different symbol
                     continue
-                if automaton.transitions[i][2] == automaton.transitions[j][2]:  # same result state
+                if self.transitions[i][2] == self.transitions[j][2]:  # same result state
                     continue
 
                 # different result state classes (one final and one not final).
                 # we don't care about these because they are already marked in the matrix by definition
-                if ((automaton.transitions[i][0] in automaton.final_states)
-                        ^ (automaton.transitions[j][0] in automaton.final_states)):
+                if ((self.transitions[i][0] in self.final_states)
+                        ^ (self.transitions[j][0] in self.final_states)):
                     continue
 
-                if (automaton.states.index(automaton.transitions[i][0])
-                        < automaton.states.index(automaton.transitions[j][0])):
-                    key: tuple[str, str] = (automaton.transitions[i][0], automaton.transitions[j][0])
+                if (self.states.index(self.transitions[i][0])
+                        < self.states.index(self.transitions[j][0])):
+                    key: tuple[str, str] = (self.transitions[i][0], self.transitions[j][0])
                 else:
-                    key: tuple[str, str] = (automaton.transitions[j][0], automaton.transitions[i][0])
+                    key: tuple[str, str] = (self.transitions[j][0], self.transitions[i][0])
 
-                value1: int = automaton.states.index(automaton.transitions[i][2])
-                value2: int = automaton.states.index(automaton.transitions[j][2])
+                value1: int = self.states.index(self.transitions[i][2])
+                value2: int = self.states.index(self.transitions[j][2])
 
                 if value1 > value2:
                     value1, value2 = value2, value1
@@ -488,17 +493,17 @@ class FiniteAutomaton:
                     if matrix[i][j] != 0:
                         continue
 
-                    for pair in pairs[(automaton.states[j], automaton.states[i + 1])]:
+                    for pair in pairs[(self.states[j], self.states[i + 1])]:
                         if matrix[pair[1] - 1][pair[0]]:
                             matrix[i][j] = cycles_count
                             changed = True
 
         # no changes to the matrix => no changes to the automaton => return the automaton from the start (not self)
         if cycles_count <= 2:
-            return automaton
+            return self
 
         # "connected components"
-        connected_components: list[int] = [i for i in range(len(automaton))]
+        connected_components: list[int] = [i for i in range(len(self))]
         for i in range(len(matrix)):
             for j in range(len(matrix[i])):
                 if matrix[i][j] == 0:
@@ -517,21 +522,20 @@ class FiniteAutomaton:
             connected_components[i] = (-1 * negative_dict[connected_components[i]]) - 1  # - 1 in the end to get 0-based
 
         # remapping the states and transitions
-        new_states_dict: dict[str, str] = {automaton[i]: f'q{connected_components[i]}' for i in range(len(automaton))}
+        new_states_dict: dict[str, str] = {self[i]: f'q{connected_components[i]}' for i in range(len(self))}
         new_transitions: list[tuple[str, str, str]] = []
-        for transition in automaton.transitions:
+        for transition in self.transitions:
             new_transition: tuple[str, str, str] = (new_states_dict[transition[0]], transition[1], new_states_dict[
                 transition[2]])
             if new_transition not in new_transitions:
                 new_transitions.append(new_transition)
 
-        # creating the new automaton with sorted states and transition
-        return FiniteAutomaton(
-            list(set(new_states_dict[state] for state in automaton.states)),
-            automaton.alphabet,
-            new_states_dict[automaton.initial_state],
-            list(set(new_states_dict[state] for state in automaton.final_states)),
-            new_transitions).remove_useless_states().sorted()
+        self.states[:] = list(set(new_states_dict[state] for state in self.states))
+        self.initial_state = new_states_dict[self.initial_state]
+        self.final_states[:] = list(set(new_states_dict[state] for state in self.final_states))
+        self.transitions = new_transitions
+
+        return self.remove_useless_states().sorted()
 
     def normalize(self) -> 'FiniteAutomaton':
         automaton: FiniteAutomaton = self.shift_states(1)
