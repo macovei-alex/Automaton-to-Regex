@@ -567,24 +567,22 @@ class FiniteAutomaton:
         return self.sorted()
 
     def to_regex(self) -> str:
-        automaton: FiniteAutomaton = self.minimize().normalize()
+        self.minimize().normalize()
 
-        while len(automaton) > 2:
-            automaton = automaton.sorted()
-            automaton = automaton.merge_parallel_transitions()
-            automaton = automaton.sorted()
-            state: str = automaton[1]
+        while len(self) > 2:
+            self.sorted().merge_parallel_transitions()
+            state: str = self[1]
 
-            t: list[tuple[str, str, str]] = automaton.transitions
+            t: list[tuple[str, str, str]] = self.transitions
 
             in_transitions: list[int] = [i for i in range(len(t))
                                          if t[i][2] == state and t[i][0] != state]
             out_transitions: list[int] = [i for i in range(len(t))
                                           if t[i][0] == state and t[i][2] != state]
             star_loop: str = ''
-            for i in range(len(automaton.transitions)):
-                if automaton.transitions[i][0] == state and automaton.transitions[i][2] == state:
-                    star_loop: str = f'{automaton.transitions[i][1]}*'
+            for i in range(len(self.transitions)):
+                if self.transitions[i][0] == state and self.transitions[i][2] == state:
+                    star_loop: str = f'{self.transitions[i][1]}*'
                     break
 
             cardinal_product: list[tuple[int, int]] = [(in_t, out_t)
@@ -600,9 +598,9 @@ class FiniteAutomaton:
                     new_expr: str = f'({new_expr})'
                 t.append((in_state, new_expr, out_state))
 
-            automaton.transitions = [transition for transition in automaton.transitions
+            self.transitions = [transition for transition in self.transitions
                                      if transition[0] != state and transition[2] != state]
-            automaton.states.pop(1)
+            self.states.pop(1)
 
-        automaton = automaton.merge_parallel_transitions()
-        return automaton.transitions[0][1]
+        self.merge_parallel_transitions()
+        return self.transitions[0][1]
