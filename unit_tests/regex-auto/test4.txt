@@ -1,0 +1,10 @@
+a(bc|d)*ee*f*
+ae        True
+abce      True
+abcbcde   True
+ad        False
+abde      False
+abcdef    True
+abcbcf    False
+abceff    True
+abcefff   True

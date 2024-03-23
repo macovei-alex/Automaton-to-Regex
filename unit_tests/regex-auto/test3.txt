@@ -1,0 +1,6 @@
+(a*b|c)*dd*
+d         True
+abccd     True
+aacd      False
+aaabbcd   True
+cccdd     True

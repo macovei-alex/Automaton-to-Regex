@@ -1,0 +1,10 @@
+ab(ac|bc)*b(a)*
+abba        True
+abbaaa      True
+abb         True
+ab          False
+abacacba    True
+abbcbcacbaa True
+abacacbbaa  False
+abacacbaab  False
+abc         False

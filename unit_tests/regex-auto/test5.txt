@@ -1,0 +1,9 @@
+(ab*c|d)(e|f)*
+abbbbbbbcefeffffffffffffff          True
+abddfeff                            False
+abcf                                True
+abbbbbbceeeeeeeeeeeeeeeeeeeef       True
+de                                  True
+dff                                 True
+dfefef                              True
+dfefeffffffffffff                   True

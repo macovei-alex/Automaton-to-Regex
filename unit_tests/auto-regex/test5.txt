@@ -1,0 +1,12 @@
+(ac|bc)*abc*
+q0 q1 q2 q3 q4
+a b c
+q0
+q4
+q0 a q1
+q1 c q0
+q0 b q2
+q2 c q0
+q0 a q3
+q3 b q4
+q4 c q4
