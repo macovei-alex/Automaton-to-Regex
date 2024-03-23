@@ -375,30 +375,30 @@ class FiniteAutomaton:
         self.final_states = list(set(self.final_states) - unreachable_states)
         self.transitions = [transition for transition in self.transitions if transition[0] in reachable_states]
         self.alphabet = [symbol for symbol in self.alphabet
-                              if any(transition[1] == symbol for transition in self.transitions)]
+                         if any(transition[1] == symbol for transition in self.transitions)]
         return self.sorted()
 
     def remove_useless_states(self) -> 'FiniteAutomaton':
-        automaton: FiniteAutomaton = self.remove_unreachable_states()
-        productive_states: set[str] = {final_state for final_state in automaton.final_states}
+        self.remove_unreachable_states()
+        productive_states: set[str] = {final_state for final_state in self.final_states}
         productive_len: int = 0
 
         while productive_len != len(productive_states):
             productive_len = len(productive_states)
 
-            for transition in automaton.transitions:
+            for transition in self.transitions:
                 if transition[2] in productive_states:
                     productive_states.add(transition[0])
 
-        if automaton.initial_state not in productive_states:
+        if self.initial_state not in productive_states:
             return FiniteAutomaton.new()
 
-        automaton.states = list(productive_states)
-        automaton.final_states = list(set(automaton.final_states) & productive_states)
-        automaton.transitions = [transition for transition in automaton.transitions if transition[0] in
-                                 productive_states and transition[2] in productive_states]
+        self.states = list(productive_states)
+        self.final_states = list(set(self.final_states) & productive_states)
+        self.transitions = [transition for transition in self.transitions if transition[0] in
+                            productive_states and transition[2] in productive_states]
 
-        return automaton.sorted()
+        return self.sorted()
 
     def insert_sink_if_needed(self) -> 'FiniteAutomaton':
         if not any(not any(transition[0] == state and transition[1] == symbol for transition in self.transitions)
