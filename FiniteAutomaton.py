@@ -538,17 +538,17 @@ class FiniteAutomaton:
         return self.remove_useless_states().sorted()
 
     def normalize(self) -> 'FiniteAutomaton':
-        automaton: FiniteAutomaton = self.shift_states(1)
-        new_final_state: str = f'q{len(automaton) + 1}'
+        self.shift_states(1)
+        new_final_state: str = f'q{len(self) + 1}'
 
-        automaton.states = ['q0'] + automaton.states + [new_final_state]
-        automaton.transitions = ([('q0', '', automaton.initial_state)]
-                                 + automaton.transitions
-                                 + [(state, '', new_final_state) for state in automaton.final_states])
-        automaton.initial_state = 'q0'
-        automaton.final_states = [new_final_state]
+        self.states = ['q0'] + self.states + [new_final_state]
+        self.transitions = ([('q0', '', self.initial_state)]
+                            + self.transitions
+                            + [(state, '', new_final_state) for state in self.final_states])
+        self.initial_state = 'q0'
+        self.final_states = [new_final_state]
 
-        return automaton.sorted()
+        return self.sorted()
 
     def merge_parallel_transitions(self) -> 'FiniteAutomaton':
         automaton: FiniteAutomaton = copy.deepcopy(self)
