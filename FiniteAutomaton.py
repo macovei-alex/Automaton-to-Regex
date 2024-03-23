@@ -90,19 +90,12 @@ class FiniteAutomaton:
         return FiniteAutomaton(['q0', 'q1'], [symbol], 'q0', ['q1'], [('q0', symbol, 'q1')])
 
     def sorted(self) -> 'FiniteAutomaton':
-        return FiniteAutomaton(
-            sorted(self.states, key=lambda state: int(state[1:])),
-            sorted(self.alphabet),
-            self.initial_state,
-            sorted(self.final_states, key=lambda state: int(state[1:])),
-            sorted(self.transitions, key=lambda t: (t[0][1:], t[1], t[2][1:])))
+        self.states[:] = sorted(self.states, key=lambda state: int(state[1:]))
+        self.alphabet[:] = sorted(self.alphabet)
+        self.final_states[:] = sorted(self.final_states, key=lambda state: int(state[1:]))
+        self.transitions[:] = sorted(self.transitions, key=lambda t: (t[0][1:], t[1], t[2][1:]))
 
-    def renew(self) -> None:
-        self.states: list[str] = []
-        self.alphabet: list[str] = []
-        self.initial_state: str = ''
-        self.final_states: list[str] = []
-        self.transitions: list[tuple] = []
+        return self
 
     @staticmethod
     def read_from_console(do_show_messages: bool = True) -> 'FiniteAutomaton':
