@@ -6,6 +6,15 @@ from constants import *
 class FiniteAutomaton:
     def __init__(self, states: list[str], alphabet: list[str], initial_state: str, final_states: list[str],
                  transitions: list[tuple[str, str, str]]) -> None:
+        """Initializes the automaton.
+        :param self: the automaton to initialize
+        :param states: the states of the automaton
+        :param alphabet: the alphabet of the automaton
+        :param initial_state: the initial state of the automaton
+        :param final_states: the final states of the automaton
+        :param transitions: the transitions of the automaton
+        :return: None"""
+
         self.states: list[str] = copy.deepcopy(states)
         self.alphabet: list[str] = sorted(copy.deepcopy(alphabet))
         self.initial_state: str = initial_state
@@ -13,6 +22,10 @@ class FiniteAutomaton:
         self.transitions: list[tuple[str, str, str]] = copy.deepcopy(transitions)
 
     def __str__(self) -> str:
+        """Gets the string representation of the automaton.
+        :param self: the automaton
+        :return: the string representation of the automaton"""
+
         return (f"States: {self.states}\n"
                 f"Alphabet: {self.alphabet}\n"
                 f"Initial state: {self.initial_state}\n"
@@ -22,15 +35,33 @@ class FiniteAutomaton:
                              self.transitions]))
 
     def __bool__(self) -> bool:
+        """Determines whether the automaton is valid.
+        :param self: the automaton
+        :return: True or False"""
+
         return self.is_valid()
 
     def __len__(self):
+        """Gets the number of states in the automaton.
+        :param self: the automaton
+        :return: the number of states in the automaton"""
+
         return len(self.states)
 
     def __getitem__(self, item: int):
+        """Gets the state at the specified index.
+        :param self: the automaton
+        :param item: the index of the state
+        :return: the state at the specified index"""
+
         return self.states[item]
 
     def __eq__(self, other: 'FiniteAutomaton') -> bool:
+        """Determines whether the 2 automata are equivalent.
+        :param self: the first automaton
+        :param other: the second automaton
+        :return: True or False"""
+
         m1: FiniteAutomaton = self.to_deterministic().minimize()
         m2: FiniteAutomaton = other.to_deterministic().minimize()
 
@@ -80,9 +111,16 @@ class FiniteAutomaton:
 
     @staticmethod
     def new() -> 'FiniteAutomaton':
+        """Generates a new empty automaton.
+        :return: the new automaton but empty"""
+
         return FiniteAutomaton([], [], '', [], [])
 
     def renew(self) -> 'FiniteAutomaton':
+        """Clears the automaton.
+        :param self: the original automaton
+        :return: the automaton but empty"""
+
         self.states.clear()
         self.alphabet.clear()
         self.initial_state = ''
@@ -92,12 +130,20 @@ class FiniteAutomaton:
 
     @staticmethod
     def new_primitive(symbol: str) -> 'FiniteAutomaton':
+        """Generates a new automaton that accepts a single symbol.
+        :param symbol: the symbol that the automaton will accept
+        :return: the new automaton that accepts the symbol"""
+
         if symbol == LAMBDA:
             return FiniteAutomaton(['q0'], [], 'q0', ['q0'], [])
 
         return FiniteAutomaton(['q0', 'q1'], [symbol], 'q0', ['q1'], [('q0', symbol, 'q1')])
 
     def sorted(self) -> 'FiniteAutomaton':
+        """Sorts the states, the alphabet, the final states, and the transitions of the automaton.
+        :param self: the original automaton
+        :return: the automaton but sorted"""
+
         self.states[:] = sorted(self.states, key=lambda state: int(state[1:]))
         self.alphabet[:] = sorted(self.alphabet)
         self.final_states[:] = sorted(self.final_states, key=lambda state: int(state[1:]))
@@ -107,6 +153,10 @@ class FiniteAutomaton:
 
     @staticmethod
     def read_from_console(do_show_messages: bool = True) -> 'FiniteAutomaton':
+        """Reads an automaton from the console input.
+        :param do_show_messages: whether to show instruction messages or not (default True)
+        :return: the automaton"""
+
         automaton = FiniteAutomaton.new()
 
         if do_show_messages:
@@ -151,11 +201,19 @@ class FiniteAutomaton:
 
     @staticmethod
     def read_from_file_path(file_name: str) -> 'FiniteAutomaton':
+        """Reads an automaton from the file at the specified path.
+        :param file_name: the path of the file
+        :return: the automaton"""
+
         with open(file_name, 'r') as file:
             return FiniteAutomaton.read_from_file_obj(file)
 
     @staticmethod
     def read_from_file_obj(file) -> 'FiniteAutomaton':
+        """Reads an automaton from an open file object.
+        :param file: the file object
+        :return: the automaton"""
+
         automaton: FiniteAutomaton = FiniteAutomaton.new()
         automaton.states = file.readline().strip().split(' ')
         automaton.alphabet = file.readline().strip().split(' ')
@@ -168,6 +226,10 @@ class FiniteAutomaton:
         return automaton.sorted()
 
     def is_deterministic(self) -> bool:
+        """Determines whether the automaton is deterministic.
+        :param self: the automaton
+        :return: True or False"""
+
         existing_transitions: set[tuple] = set()
 
         for transition in self.transitions:
@@ -181,6 +243,10 @@ class FiniteAutomaton:
         return True
 
     def is_valid(self) -> bool:
+        """Determines whether the automaton is valid.
+        :param self: the automaton
+        :return: True or False"""
+
         if len(self.states) == 0 or len(self.alphabet) == 0:
             return True
 
@@ -203,6 +269,11 @@ class FiniteAutomaton:
         return True
 
     def accepts(self, word) -> bool:
+        """Determines whether the automaton accepts a word.
+        :param self: the automaton
+        :param word: the word
+        :return: True or False"""
+
         current_states: set[str] = self.lambda_closure(self.initial_state)
 
         for symbol in word:
@@ -217,6 +288,11 @@ class FiniteAutomaton:
         return False
 
     def lambda_closure(self, state: str) -> set[str]:
+        """Calculates the lambda closure of a state.
+        :param self: the automaton
+        :param state: the state
+        :return: the lambda closure of the state"""
+
         if state not in self.states:
             return set()
 
@@ -231,6 +307,11 @@ class FiniteAutomaton:
         return closure
 
     def lambda_closure_all(self, states: list[str] | set[str]) -> set[str]:
+        """Calculates the lambda closure of a set of states.
+        :param self: the automaton
+        :param states: the set (or list) of states
+        :return: the lambda closure of the set of states"""
+
         return set().union(*(self.lambda_closure(state) for state in states))
 
         # closure: set[str] = set()
@@ -240,9 +321,18 @@ class FiniteAutomaton:
 
     @staticmethod
     def shift_state(state: str, count: int) -> str:
+        """Shifts a state by a certain count. The state must follow the format '[a-zA-Z][0-9]+'.
+        :param state: the original state
+        :param count: the number of positions to shift the state by
+        :return: the new state after shifting it by the count"""
+
         return state[0] + str(int(state[1:]) + count)
 
     def shift_states(self, count: int) -> 'FiniteAutomaton':
+        """Modifies the original automaton so that all the states are shifted by a certain count.
+        :param self: the original automaton
+        :param count: the number of positions to shift the states by"""
+
         self.states[:] = [FiniteAutomaton.shift_state(state, count) for state in self.states]
         self.initial_state = FiniteAutomaton.shift_state(self.initial_state, count)
         self.final_states[:] = [FiniteAutomaton.shift_state(final_state, count)
@@ -253,6 +343,9 @@ class FiniteAutomaton:
         return self
 
     def defragmentation(self) -> 'FiniteAutomaton':
+        """Modifies the original automaton so that the states all have the format '[a-zA-Z][0-9]+'.
+        :param self: the original automaton
+        :return: the modified automaton"""
         try:
             fragmented: bool = all(0 <= int(self[i][1:]) < len(self) for i in range(len(self)))
         except ValueError:
@@ -271,6 +364,12 @@ class FiniteAutomaton:
         return self.sorted()
 
     def to_deterministic(self) -> 'FiniteAutomaton':
+        """Modifies the original automaton so that it accepts the same language as the original
+        automaton, but is deterministic.
+        :param self: the original automaton
+        :return: the modified automaton that accepts the same language as the original automaton,
+        but is deterministic"""
+
         if self.is_deterministic():
             return self
 
@@ -317,6 +416,11 @@ class FiniteAutomaton:
         return self
 
     def alternate(self, other: 'FiniteAutomaton') -> 'FiniteAutomaton':
+        """Generates a new automaton that accepts the union of the languages of the original 2 automata.
+        :param self: the first automaton
+        :param other: the second automaton
+        :return: the new automaton that accepts the union of the languages of the original 2 automata"""
+
         ret: FiniteAutomaton = FiniteAutomaton.new()
 
         new_final_state: str = f'q{str(len(self.states) + len(other.states) + 1)}'
@@ -337,6 +441,11 @@ class FiniteAutomaton:
         return ret
 
     def concatenate(self, other: 'FiniteAutomaton') -> 'FiniteAutomaton':
+        """Generates a new automaton that accepts the concatenation of the languages of the original 2 automata.
+        :param self: the first automaton
+        :param other: the second automaton
+        :return: the new automaton that accepts the concatenation of the languages of the original 2 automata"""
+
         ret: FiniteAutomaton = FiniteAutomaton.new()
         other_shifted: FiniteAutomaton = other.shift_states(len(self.states) - 1)
         ret.initial_state = self.initial_state
@@ -348,6 +457,10 @@ class FiniteAutomaton:
         return ret
 
     def star(self) -> 'FiniteAutomaton':
+        """Generates a new automaton that accepts the Kleene star of the language of the original automaton.
+        :param self: the original automaton
+        :return: the new automaton that accepts the Kleene star of the language of the original automaton"""
+
         ret: FiniteAutomaton = FiniteAutomaton.new()
 
         self_shifted: FiniteAutomaton = self.shift_states(1)
@@ -365,6 +478,10 @@ class FiniteAutomaton:
         return ret
 
     def remove_unreachable_states(self) -> 'FiniteAutomaton':
+        """Modifies the original automaton so that the states that can't be reached are eliminated.
+        :param self: the original automaton
+        :return: the modified automaton"""
+
         reachable_states: set[str] = {self.initial_state}
 
         change: bool = True
@@ -388,6 +505,11 @@ class FiniteAutomaton:
         return self.sorted()
 
     def remove_useless_states(self) -> 'FiniteAutomaton':
+        """Modifies the original automaton so that the states that don't result in a final state and the states that
+        can't be reached are both eliminated.
+        :param self: the original automaton
+        :return: the modified automaton"""
+
         self.remove_unreachable_states()
         productive_states: set[str] = {final_state for final_state in self.final_states}
         productive_len: int = 0
@@ -411,6 +533,11 @@ class FiniteAutomaton:
         return self.sorted()
 
     def insert_sink_if_needed(self) -> 'FiniteAutomaton':
+        """Inserts a new state that all the other states will go to
+        with the symbols that they don't have transitions for if there are such states.
+        :param self: the original automaton
+        :return: the modified (or unmodified) automaton"""
+
         if not any(not any(transition[0] == state and transition[1] == symbol for transition in self.transitions)
                    for symbol in self.alphabet
                    for state in self.states):
@@ -425,6 +552,10 @@ class FiniteAutomaton:
         return self.sorted()
 
     def minimize(self) -> 'FiniteAutomaton':
+        """Minimizes the automaton.
+        :param self: the original automaton
+        :return: the minimized automaton"""
+
         if not self.is_deterministic():
             self.to_deterministic().defragmentation()
         else:
@@ -538,19 +669,28 @@ class FiniteAutomaton:
         return self.remove_useless_states().sorted()
 
     def normalize(self) -> 'FiniteAutomaton':
+        """Adds a new initial state and a new final state, and connects them
+        to the old initial state and final states with lambda transitions.
+        :param self: the original automaton
+        :return: the normalized automaton"""
+
         self.shift_states(1)
         new_final_state: str = f'q{len(self) + 1}'
 
-        self.states = ['q0'] + self.states + [new_final_state]
-        self.transitions = ([('q0', '', self.initial_state)]
-                            + self.transitions
-                            + [(state, '', new_final_state) for state in self.final_states])
+        self.states[:] = ['q0'] + self.states + [new_final_state]
+        self.transitions[:] = ([('q0', '', self.initial_state)]
+                               + self.transitions
+                               + [(state, '', new_final_state) for state in self.final_states])
         self.initial_state = 'q0'
-        self.final_states = [new_final_state]
+        self.final_states[:] = [new_final_state]
 
         return self.sorted()
 
     def merge_parallel_transitions(self) -> 'FiniteAutomaton':
+        """Merges parallel transitions with the same starting and ending states into 1 single transition.
+        :param self: the original automaton
+        :return: the modified automaton"""
+
         parallels: dict[tuple[str, str], list[str]] = {(t[0], t[2]): [] for t in self.transitions}
 
         for transition in self.transitions:
@@ -567,6 +707,10 @@ class FiniteAutomaton:
         return self.sorted()
 
     def to_regex(self) -> str:
+        """Generates 1 of the regular expressions that represents the language of the automaton.
+        :param self: the original automaton
+        :return: the regular expression that represents the language of the automaton"""
+
         self.minimize().normalize()
 
         while len(self) > 2:
@@ -599,7 +743,7 @@ class FiniteAutomaton:
                 t.append((in_state, new_expr, out_state))
 
             self.transitions = [transition for transition in self.transitions
-                                     if transition[0] != state and transition[2] != state]
+                                if transition[0] != state and transition[2] != state]
             self.states.pop(1)
 
         self.merge_parallel_transitions()
