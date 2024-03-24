@@ -71,27 +71,28 @@ class FiniteAutomaton:
         alphabet: list[str] = m1.alphabet
         added_state_pairs: set[tuple[str, str]] = {(m1.initial_state, m2.initial_state)}
         state_pairs: set[tuple[str, str]] = set()
+        new_state_pairs: set[tuple[str, str]] = {('', '')}
 
-        changed: bool = True
-
-        while changed:
-            changed = False
-            new_state_pairs: set[tuple[str, str]] = set()
+        while new_state_pairs:
+            new_state_pairs = set()
 
             for pair in added_state_pairs:
                 for symbol in alphabet:
-                    next1: str = ''
-                    next2: str = ''
+                    list1: list[str] = [t1[2] for t1 in m1.transitions if t1[0] == pair[0] and t1[1] == symbol]
+                    list2: list[str] = [t2[2] for t2 in m2.transitions if t2[0] == pair[1] and t2[1] == symbol]
 
-                    for t1 in m1.transitions:
-                        if t1[0] == pair[0] and t1[1] == symbol:
-                            next1: str = t1[2]
-                            break
+                    next1: str = list1[0] if list1 else ''
+                    next2: str = list2[0] if list2 else ''
 
-                    for t2 in m2.transitions:
-                        if t2[0] == pair[1] and t2[1] == symbol:
-                            next2: str = t2[2]
-                            break
+                    # for t1 in m1.transitions:
+                    #     if t1[0] == pair[0] and t1[1] == symbol:
+                    #         next1: str = t1[2]
+                    #         break
+                    #
+                    # for t2 in m2.transitions:
+                    #     if t2[0] == pair[1] and t2[1] == symbol:
+                    #         next2: str = t2[2]
+                    #         break
 
                     if next1 == '' and next2 == '':
                         continue
@@ -102,7 +103,6 @@ class FiniteAutomaton:
                         if (next1 in m1.final_states) ^ (next2 in m2.final_states):
                             return False
                         new_state_pairs.add((next1, next2))
-                        changed = True
 
             state_pairs |= added_state_pairs
             added_state_pairs = new_state_pairs
@@ -116,7 +116,7 @@ class FiniteAutomaton:
 
         return FiniteAutomaton([], [], '', [], [])
 
-    def renew(self) -> 'FiniteAutomaton':
+    def empty(self) -> 'FiniteAutomaton':
         """Clears the automaton.
         :param self: the original automaton
         :return: the automaton but empty"""
@@ -237,7 +237,6 @@ class FiniteAutomaton:
                 return False
             if (transition[0], transition[1]) in existing_transitions:
                 return False
-
             existing_transitions.add((transition[0], transition[1]))
 
         return True
@@ -248,7 +247,7 @@ class FiniteAutomaton:
         :return: True or False"""
 
         if len(self.states) == 0 or len(self.alphabet) == 0:
-            return True
+            return False
 
         if self.initial_state not in self.states:
             return False
@@ -268,7 +267,7 @@ class FiniteAutomaton:
 
         return True
 
-    def accepts(self, word) -> bool:
+    def accepts(self, word: str) -> bool:
         """Determines whether the automaton accepts a word.
         :param self: the automaton
         :param word: the word
@@ -343,7 +342,7 @@ class FiniteAutomaton:
         return self
 
     def defragmentation(self) -> 'FiniteAutomaton':
-        """Modifies the original automaton so that the states all have the format '[a-zA-Z][0-9]+'.
+        """Modifies the original automaton so that the states all have the format 'q[0-9]+'.
         :param self: the original automaton
         :return: the modified automaton"""
         try:
@@ -365,7 +364,7 @@ class FiniteAutomaton:
 
     def to_deterministic(self) -> 'FiniteAutomaton':
         """Modifies the original automaton so that it accepts the same language as the original
-        automaton, but is deterministic.
+        automaton, but is deterministic. The method used is called the 'powerset construction'.
         :param self: the original automaton
         :return: the modified automaton that accepts the same language as the original automaton,
         but is deterministic"""
@@ -522,7 +521,7 @@ class FiniteAutomaton:
                     productive_states.add(transition[0])
 
         if self.initial_state not in productive_states:
-            self.renew()
+            self.empty()
             return self
 
         self.states[:] = list(productive_states)
@@ -554,14 +553,14 @@ class FiniteAutomaton:
     def minimize(self) -> 'FiniteAutomaton':
         """Minimizes the automaton.
         :param self: the original automaton
-        :return: the minimized automaton"""
+        :return: the automaton after minimization"""
 
         if not self.is_deterministic():
             self.to_deterministic().defragmentation()
         else:
             self.defragmentation()
 
-        self.insert_sink_if_needed()
+        self.remove_useless_states().insert_sink_if_needed()
 
         # triangular under-diagonal matrix with False values
         matrix: list[list[int]] = [[0] * (i + 1) for i in range(len(self) - 1)]
