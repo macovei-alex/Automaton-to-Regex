@@ -6,7 +6,7 @@ from constants import *
 class FiniteAutomaton:
     def __init__(self, states: list[str], alphabet: list[str], initial_state: str, final_states: list[str],
                  transitions: list[tuple[str, str, str]]) -> None:
-        """Initializes the automaton.
+        """Initializes the automaton. The parameters are deep copied to avoid any side effects.
         :param self: the automaton to initialize
         :param states: the states of the automaton
         :param alphabet: the alphabet of the automaton
