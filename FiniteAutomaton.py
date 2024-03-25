@@ -67,6 +67,7 @@ class FiniteAutomaton:
 
         m1: FiniteAutomaton = self.to_deterministic().minimize()
         m2: FiniteAutomaton = other.to_deterministic().minimize()
+        # we will not take into account the complexity of the transformations done above
         # we will consider n = max(len(m1.states), len(m2.states))
 
         # O(n^2)
@@ -149,10 +150,22 @@ class FiniteAutomaton:
         :param self: the original automaton
         :return: the automaton but sorted"""
 
-        self.states[:] = sorted(self.states, key=lambda state: int(state[1:]))
+        try:
+            self.states[:] = sorted(self.states, key=lambda state: int(state[1:]))
+        except ValueError:
+            self.states[:] = sorted(self.states)
+
         self.alphabet[:] = sorted(self.alphabet)
-        self.final_states[:] = sorted(self.final_states, key=lambda state: int(state[1:]))
-        self.transitions[:] = sorted(self.transitions, key=lambda t: (t[0][1:], t[1], t[2][1:]))
+
+        try:
+            self.final_states[:] = sorted(self.final_states, key=lambda state: int(state[1:]))
+        except ValueError:
+            self.final_states[:] = sorted(self.final_states)
+
+        try:
+            self.transitions[:] = sorted(self.transitions, key=lambda t: (t[0][1:], t[1], t[2][1:]))
+        except ValueError:
+            self.transitions[:] = sorted(self.transitions)
 
         return self
 
