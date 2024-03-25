@@ -151,21 +151,21 @@ class FiniteAutomaton:
         :return: the automaton but sorted"""
 
         try:
-            self.states[:] = sorted(self.states, key=lambda state: int(state[1:]))
+            self.states.sort(key=lambda state: int(state[1:]))
         except ValueError:
-            self.states[:] = sorted(self.states)
+            self.states.sort()
 
-        self.alphabet[:] = sorted(self.alphabet)
-
-        try:
-            self.final_states[:] = sorted(self.final_states, key=lambda state: int(state[1:]))
-        except ValueError:
-            self.final_states[:] = sorted(self.final_states)
+        self.alphabet.sort()
 
         try:
-            self.transitions[:] = sorted(self.transitions, key=lambda t: (t[0][1:], t[1], t[2][1:]))
+            self.final_states.sort(key=lambda state: int(state[1:]))
         except ValueError:
-            self.transitions[:] = sorted(self.transitions)
+            self.final_states.sort()
+
+        try:
+            self.transitions.sort(key=lambda t: (t[0][1:], t[1], t[2][1:]))
+        except ValueError:
+            self.transitions.sort()
 
         return self
 
