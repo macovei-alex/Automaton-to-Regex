@@ -2,6 +2,9 @@ import copy
 
 from constants import *
 
+pair_int: type = tuple[int, int]
+pair_str: type = tuple[str, str]
+
 
 class FiniteAutomaton:
     def __init__(self, states: list[str], alphabet: list[str], initial_state: str, final_states: list[str],
@@ -83,14 +86,12 @@ class FiniteAutomaton:
         final_states_set_1: set[str] = set(m1.final_states)
         final_states_set_2: set[str] = set(m2.final_states)
 
-        pair_t = tuple[str, str]
-
         # O(n^2)
-        transitions_dict_1: dict[pair_t, str] = {(t[0], t[1]): t[2] for t in m1.transitions}
-        transitions_dict_2: dict[pair_t, str] = {(t[0], t[1]): t[2] for t in m2.transitions}
+        transitions_dict_1: dict[pair_str, str] = {(t[0], t[1]): t[2] for t in m1.transitions}
+        transitions_dict_2: dict[pair_str, str] = {(t[0], t[1]): t[2] for t in m2.transitions}
 
         # O(n^2 * s)
-        table: dict[pair_t, dict[str, pair_t]] = {
+        table: dict[pair_str, dict[str, pair_str]] = {
             (state1, state2): {symbol: ('', '') for symbol in alphabet}
             for state1 in m1.states
             for state2 in m2.states
@@ -542,10 +543,10 @@ class FiniteAutomaton:
             self.empty()
             return self
 
-        self.states[:] = list(productive_states)
-        self.final_states[:] = list(set(self.final_states) & productive_states)
-        self.transitions[:] = [transition for transition in self.transitions if transition[0] in
-                               productive_states and transition[2] in productive_states]
+        self.states = list(productive_states)
+        self.final_states = list(set(self.final_states) & productive_states)
+        self.transitions = [transition for transition in self.transitions if transition[0] in
+                            productive_states and transition[2] in productive_states]
 
         return self.sorted()
 
@@ -579,68 +580,83 @@ class FiniteAutomaton:
             self.defragmentation()
 
         self.remove_useless_states().insert_sink_if_needed()
+        # we will not take into account the complexity of the transformations done above
+        # we will consider n = len(self.states), s = len(self.alphabet)
 
         # triangular under-diagonal matrix with False values
+        # O(n^2)
         matrix: list[list[int]] = [[0] * (i + 1) for i in range(len(self) - 1)]
 
+        # O(n)
+        final_states_set: set[str] = set(self.final_states)
+
+        # O(n^2)
         for i in range(len(self)):
             for j in range(i + 1, len(self)):
                 state1: str = self[i]
                 state2: str = self[j]
 
                 # mark all the different-classed state pairs (one final state and one not final state)
-                if (state1 in self.final_states) ^ (state2 in self.final_states):
+                # O(1)
+                if (state1 in final_states_set) != (state2 in final_states_set):
                     matrix[j - 1][i] = 1
 
         # initiate the dictionary with empty lists for each ordered pair of states.
         # we map each ordered pair of states with all their possible outcomes (pairs) when following the same symbol
         # in a transition
-        pairs: dict[tuple[str, str], list[tuple[int, int]]] = {
-            (self[i], self[j]): []
+        # O(n^2)
+        pairs: dict[pair_str, set[pair_int]] = {
+            (self[i], self[j]): set()
             for i in range(len(self))
-            for j in range(i + 1, len(self))}
+            for j in range(i + 1, len(self))
+        }
 
-        for i in range(len(self.transitions)):
-            for j in range(len(self.transitions)):
-                if self.transitions[i][0] == self.transitions[j][0]:  # same starting state
+        # O(n)
+        states_index: dict[str, int] = {state: i for i, state in enumerate(self.states)}
+        # O(n^2)
+        transitions_dict: dict[pair_str, str] = {(t[0], t[1]): t[2] for t in self.transitions}
+
+        # O(n^2 * s)
+        for i in range(len(self) - 1):
+            for j in range(i + 1, len(self)):
+                state1: str = self[i]
+                state2: str = self[j]
+
+                # O(1)
+                if (self[i] in final_states_set) != (self[j] in final_states_set):
                     continue
-                if self.transitions[i][1] != self.transitions[j][1]:  # different symbol
-                    continue
-                if self.transitions[i][2] == self.transitions[j][2]:  # same result state
-                    continue
 
-                # different result state classes (one final and one not final).
-                # we don't care about these because they are already marked in the matrix by definition
-                if ((self.transitions[i][0] in self.final_states)
-                        ^ (self.transitions[j][0] in self.final_states)):
-                    continue
+                # O(s)
+                for symbol in self.alphabet:
+                    next1: str = transitions_dict.get((state1, symbol))
+                    next2: str = transitions_dict.get((state2, symbol))
 
-                if (self.states.index(self.transitions[i][0])
-                        < self.states.index(self.transitions[j][0])):
-                    key: tuple[str, str] = (self.transitions[i][0], self.transitions[j][0])
-                else:
-                    key: tuple[str, str] = (self.transitions[j][0], self.transitions[i][0])
+                    if next1 is None or next2 is None:  # no transition for the symbol
+                        continue
+                    if next1 == next2:  # same result state
+                        continue
 
-                value1: int = self.states.index(self.transitions[i][2])
-                value2: int = self.states.index(self.transitions[j][2])
+                    # O(1)
+                    if states_index[next1] > states_index[next2]:
+                        next1, next2 = next2, next1
 
-                if value1 > value2:
-                    value1, value2 = value2, value1
-
-                # append the new ordered pair of states to the dictionary's values
-                if (value1, value2) not in pairs[key]:
-                    pairs[key].append((value1, value2))
+                    pairs[(state1, state2)].add((states_index[next1], states_index[next2]))
 
         changed: bool = True
         cycles_count: int = 1
+
+        # O(n^4 * s)
         while changed:
             changed = False
             cycles_count += 1
+
+            # O(n^2)
             for i in range(len(matrix)):
                 for j in range(len(matrix[i])):
                     if matrix[i][j] != 0:
                         continue
 
+                    # O(s)
                     for pair in pairs[(self.states[j], self.states[i + 1])]:
                         if matrix[pair[1] - 1][pair[0]]:
                             matrix[i][j] = cycles_count
@@ -651,6 +667,7 @@ class FiniteAutomaton:
             return self
 
         # "connected components"
+        # O(n^3)
         connected_components: list[int] = [i for i in range(len(self))]
         for i in range(len(matrix)):
             for j in range(len(matrix[i])):
@@ -660,16 +677,20 @@ class FiniteAutomaton:
                             connected_components[k] = j
 
         # states defragmentation: mapping to consecutive negative numbers, and then back to natural consecutive numbers
+        # O(n)
         negative_dict: dict[int, int] = {}
         next_negative: int = -1
         for i in range(len(connected_components)):
             if connected_components[i] not in negative_dict:
                 negative_dict[connected_components[i]] = next_negative
                 next_negative -= 1
+
+        # O(n)
         for i in range(len(connected_components)):
             connected_components[i] = (-1 * negative_dict[connected_components[i]]) - 1  # - 1 in the end to get 0-based
 
         # remapping the states and transitions
+        # O(n^2)
         new_states_dict: dict[str, str] = {self[i]: f'q{connected_components[i]}' for i in range(len(self))}
         new_transitions: list[tuple[str, str, str]] = []
         for transition in self.transitions:
@@ -678,9 +699,9 @@ class FiniteAutomaton:
             if new_transition not in new_transitions:
                 new_transitions.append(new_transition)
 
-        self.states[:] = list(set(new_states_dict[state] for state in self.states))
+        self.states = list(set(new_states_dict[state] for state in self.states))
         self.initial_state = new_states_dict[self.initial_state]
-        self.final_states[:] = list(set(new_states_dict[state] for state in self.final_states))
+        self.final_states = list(set(new_states_dict[state] for state in self.final_states))
         self.transitions = new_transitions
 
         return self.remove_useless_states().sorted()
@@ -708,7 +729,7 @@ class FiniteAutomaton:
         :param self: the original automaton
         :return: the modified automaton"""
 
-        parallels: dict[tuple[str, str], list[str]] = {(t[0], t[2]): [] for t in self.transitions}
+        parallels: dict[pair_str, list[str]] = {(t[0], t[2]): [] for t in self.transitions}
 
         for transition in self.transitions:
             parallels[(transition[0], transition[2])].append(transition[1])
@@ -746,7 +767,7 @@ class FiniteAutomaton:
                     star_loop: str = f'{self.transitions[i][1]}*'
                     break
 
-            cardinal_product: list[tuple[int, int]] = [(in_t, out_t)
+            cardinal_product: list[pair_int] = [(in_t, out_t)
                                                        for in_t in in_transitions
                                                        for out_t in out_transitions]
 
