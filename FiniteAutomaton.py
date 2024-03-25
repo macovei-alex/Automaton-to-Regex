@@ -41,14 +41,14 @@ class FiniteAutomaton:
 
         return self.is_valid()
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Gets the number of states in the automaton.
         :param self: the automaton
         :return: the number of states in the automaton"""
 
         return len(self.states)
 
-    def __getitem__(self, item: int):
+    def __getitem__(self, item: int) -> str:
         """Gets the state at the specified index.
         :param self: the automaton
         :param item: the index of the state
@@ -59,71 +59,60 @@ class FiniteAutomaton:
     def __eq__(self, other: 'FiniteAutomaton') -> bool:
         """Determines whether the 2 automata are equivalent.
         The algorithm used is the comparison method described in the book
-        "Theory of Computer Science: Automata, Languages, and Computation" by K.L.P. Mishra and N. Chandrasekaran,
-        page 158.
+        "Theory of Computer Science: Automata, Languages, and Computation" by Mishra and Chandrasekaran,
+        3rd edition, 2008, page 158.
         :param self: the first automaton
         :param other: the second automaton
         :return: True or False"""
 
         m1: FiniteAutomaton = self.to_deterministic().minimize()
         m2: FiniteAutomaton = other.to_deterministic().minimize()
+        # we will consider n = max(len(m1.states), len(m2.states))
 
+        # O(n^2)
+        m1.alphabet = list({symbol for _, symbol, _ in m1.transitions})
+        m2.alphabet = list({symbol for _, symbol, _ in m2.transitions})
         if m1.alphabet != m2.alphabet:
             return False
 
         alphabet: list[str] = m1.alphabet
+        # we will consider s = len(alphabet)
 
-        # set of pairs of states that have been added to the set until the last iteration
-        state_pairs: set[tuple[str, str]] = set()
+        # O(n)
+        final_states_set_1: set[str] = set(m1.final_states)
+        final_states_set_2: set[str] = set(m2.final_states)
 
-        # set of pairs of states that have been added to the set in the last iteration
-        added_state_pairs: set[tuple[str, str]] = {(m1.initial_state, m2.initial_state)}
+        pair_t = tuple[str, str]
 
-        # set of pairs of states that are added during the current iteration
-        new_state_pairs: set[tuple[str, str]] = {('', '')}
+        # O(n^2)
+        transitions_dict_1: dict[pair_t, str] = {(t[0], t[1]): t[2] for t in m1.transitions}
+        transitions_dict_2: dict[pair_t, str] = {(t[0], t[1]): t[2] for t in m2.transitions}
 
-        # while changes have been made in the last iteration
-        while new_state_pairs:
-            new_state_pairs = set()
+        # O(n^2 * s)
+        table: dict[pair_t, dict[str, pair_t]] = {
+            (state1, state2): {symbol: ('', '') for symbol in alphabet}
+            for state1 in m1.states
+            for state2 in m2.states
+            if (state1 in final_states_set_1) == (state2 in final_states_set_2)
+        }
 
-            for pair in added_state_pairs:
-                for symbol in alphabet:
+        # O(n^2 * s)
+        for symbol in alphabet:
+            for (state1, state2) in table.keys():
 
-                    # search for the states that the pair of states transitions to with the symbol
-                    list1: list[str] = [t1[2] for t1 in m1.transitions if t1[0] == pair[0] and t1[1] == symbol]
-                    list2: list[str] = [t2[2] for t2 in m2.transitions if t2[0] == pair[1] and t2[1] == symbol]
+                # O(1)
+                next_state1: str = transitions_dict_1.get(state1, symbol)
+                next_state2: str = transitions_dict_2.get(state2, symbol)
 
-                    next1: str = list1[0] if list1 else ''
-                    next2: str = list2[0] if list2 else ''
+                # O(1)
+                if (next_state1 in final_states_set_1) != (next_state2 in final_states_set_2):
+                    return False
 
-                    # for t1 in m1.transitions:
-                    #     if t1[0] == pair[0] and t1[1] == symbol:
-                    #         next1: str = t1[2]
-                    #         break
-                    #
-                    # for t2 in m2.transitions:
-                    #     if t2[0] == pair[1] and t2[1] == symbol:
-                    #         next2: str = t2[2]
-                    #         break
-
-                    if next1 == '' and next2 == '':
-                        continue
-
-                    # if the pair of states transitions to a different pair of states with the symbol
-                    if ((next1, next2) not in state_pairs
-                            and (next1, next2) not in added_state_pairs
-                            and (next1, next2) not in new_state_pairs):
-
-                        # if the pair of states transitions to a different class of states
-                        if (next1 in m1.final_states) ^ (next2 in m2.final_states):
-                            return False
-
-                        new_state_pairs.add((next1, next2))
-
-            state_pairs |= added_state_pairs
-            added_state_pairs = new_state_pairs
+                # the insertion is optional, it doesn't affect the correctness of the algorithm
+                table[(state1, state2)][symbol] = (next_state1, next_state2)
 
         return True
+        # total complexity: O(n^2 * s)
 
     @staticmethod
     def new() -> 'FiniteAutomaton':
