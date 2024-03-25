@@ -705,6 +705,7 @@ class FiniteAutomaton:
         self.transitions = new_transitions
 
         return self.remove_useless_states().sorted()
+        # total complexity: O(n^4 * s)
 
     def normalize(self) -> 'FiniteAutomaton':
         """Adds a new initial state and a new final state, and connects them
@@ -715,12 +716,14 @@ class FiniteAutomaton:
         self.shift_states(1)
         new_final_state: str = f'q{len(self) + 1}'
 
-        self.states[:] = ['q0'] + self.states + [new_final_state]
-        self.transitions[:] = ([('q0', '', self.initial_state)]
-                               + self.transitions
-                               + [(state, '', new_final_state) for state in self.final_states])
+        self.states.insert(0, 'q0')
+        self.states.append(new_final_state)
+
+        self.transitions.insert(0, ('q0', '', self.initial_state))
+        self.transitions.extend([(state, '', new_final_state) for state in self.final_states])
+
         self.initial_state = 'q0'
-        self.final_states[:] = [new_final_state]
+        self.final_states = [new_final_state]
 
         return self.sorted()
 
@@ -731,6 +734,7 @@ class FiniteAutomaton:
 
         parallels: dict[pair_str, list[str]] = {(t[0], t[2]): [] for t in self.transitions}
 
+        # O(n^2)
         for transition in self.transitions:
             parallels[(transition[0], transition[2])].append(transition[1])
 
