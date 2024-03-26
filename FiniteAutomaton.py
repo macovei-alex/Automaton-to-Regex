@@ -556,6 +556,8 @@ class FiniteAutomaton:
         :param self: the original automaton
         :return: the modified (or unmodified) automaton"""
 
+        # total complexity: O(n^4 * s)
+
         if not any(not any(transition[0] == state and transition[1] == symbol for transition in self.transitions)
                    for symbol in self.alphabet
                    for state in self.states):
@@ -705,13 +707,14 @@ class FiniteAutomaton:
         self.transitions = new_transitions
 
         return self.remove_useless_states().sorted()
-        # total complexity: O(n^4 * s)
 
     def normalize(self) -> 'FiniteAutomaton':
         """Adds a new initial state and a new final state, and connects them
         to the old initial state and final states with lambda transitions.
         :param self: the original automaton
         :return: the normalized automaton"""
+
+        # total complexity: O(1)
 
         self.shift_states(1)
         new_final_state: str = f'q{len(self) + 1}'
@@ -732,17 +735,21 @@ class FiniteAutomaton:
         :param self: the original automaton
         :return: the modified automaton"""
 
+        # total complexity O(n^2)
+
         parallels: dict[pair_str, list[str]] = {(t[0], t[2]): [] for t in self.transitions}
 
         # O(n^2)
         for transition in self.transitions:
             parallels[(transition[0], transition[2])].append(transition[1])
 
+        # O(n^2)
         for states_pair, symbols_list in parallels.items():
             if len(symbols_list) > 1:
                 parallels[states_pair] = [symbol if symbol != '' else LAMBDA for symbol in symbols_list]
 
-        self.transitions[:] = [
+        # O(n^2)
+        self.transitions = [
             (state1, f"({'|'.join(symbols)})" if len(symbols) > 1 else symbols[0], state2)
             for (state1, state2), symbols in parallels.items() if len(symbols) > 0]
 
@@ -753,28 +760,35 @@ class FiniteAutomaton:
         :param self: the original automaton
         :return: the regular expression that represents the language of the automaton"""
 
+        # total complexity: O(n^3)
+
         self.minimize().normalize()
 
+        # O(n^3)
         while len(self) > 2:
+            # O(n^2)
             self.sorted().merge_parallel_transitions()
             state: str = self[1]
 
             t: list[tuple[str, str, str]] = self.transitions
 
+            # O(n^2)
             in_transitions: list[int] = [i for i in range(len(t))
                                          if t[i][2] == state and t[i][0] != state]
+            # O(n^2)
             out_transitions: list[int] = [i for i in range(len(t))
                                           if t[i][0] == state and t[i][2] != state]
+            # O(n^2)
             star_loop: str = ''
             for i in range(len(self.transitions)):
                 if self.transitions[i][0] == state and self.transitions[i][2] == state:
                     star_loop: str = f'{self.transitions[i][1]}*'
                     break
-
+            # O(n^2)
             cardinal_product: list[pair_int] = [(in_t, out_t)
-                                                       for in_t in in_transitions
-                                                       for out_t in out_transitions]
-
+                                                for in_t in in_transitions
+                                                for out_t in out_transitions]
+            # O(n^2)
             for in_t, out_t in cardinal_product:
                 in_state: str = t[in_t][0]
                 out_state: str = t[out_t][2]
@@ -784,6 +798,7 @@ class FiniteAutomaton:
                     new_expr: str = f'({new_expr})'
                 t.append((in_state, new_expr, out_state))
 
+            # O(n^2)
             self.transitions = [transition for transition in self.transitions
                                 if transition[0] != state and transition[2] != state]
             self.states.pop(1)
